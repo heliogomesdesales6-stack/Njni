@@ -1,0 +1,607 @@
+repeat task.wait() until game:IsLoaded()
+start_script_time = tick()
+repeat task.wait() until game:GetService("Players").LocalPlayer
+repeat task.wait()
+    pcall(function()
+        for i, v in pairs(getconnections(game.Players.LocalPlayer.PlayerGui["Main (minimal)"].ChooseTeam.Container[(getgenv().Team or "Pirates")].Frame.TextButton.Activated)) do
+            v.Function()
+        end
+    end)
+until game:GetService("Players").LocalPlayer.Team ~= nil
+local plr = game:GetService("Players").LocalPlayer
+local WS, RunService, ReplicatedStorage, Lighting, Players = workspace, game:GetService("RunService"), game:GetService("ReplicatedStorage"), game:GetService("Lighting"), game:GetService("Players")
+local Calisucvat = {}
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local RenderStepped, Stepped = RunService.Stepped, RunService.RenderStepped
+local CommF_ = ReplicatedStorage.Remotes:WaitForChild("CommF_")
+local Modules = ReplicatedStorage:WaitForChild("Modules")
+local Net = Modules:WaitForChild("Net")
+local Quests = require(ReplicatedStorage:WaitForChild("Quests"))
+local GuideModule = require(ReplicatedStorage:WaitForChild("GuideModule"))
+local Register_Attack, Register_Hit = Net:WaitForChild("RE/RegisterAttack"), Net:WaitForChild("RE/RegisterHit")
+local instance = {obj = {}}
+local object = instance.obj
+local HttpService = game:GetService("HttpService")
+local LoadedHub
+local Validator = game.ReplicatedStorage.Remotes:WaitForChild("Validator2")
+local ShootRemote = game.ReplicatedStorage.Modules.Net:WaitForChild("RE/ShootGunEvent")
+local CurrnetExecutor = identifyexecutor()
+local LeviathanHuntPos = Vector3.new(-99999999.21484375, 37.18704697489738464, 656.7513427734375).Unit
+local FastAttack = {}
+local FastAttack_enemies = workspace:WaitForChild("Enemies")
+local FastAttack_characters = workspace:WaitForChild("Characters")
+local FastAttack_arms = { "RightLowerArm", "RightUpperArm", "LeftLowerArm", "LeftUpperArm", "RightHand", "LeftHand" }
+local FastAttack_sendHits
+local FastAttack_combatThread
+pcall(function()
+    FastAttack_combatThread = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Flags")).COMBAT_REMOTE_THREAD or false
+end)
+local function FastAttack_GetSendHits()
+    if not getsenv then return nil end
+    local playerScripts = plr:FindFirstChild("PlayerScripts")
+    if not playerScripts then return nil end
+    for _, s in ipairs(playerScripts:GetChildren()) do
+        if s:IsA("LocalScript") then
+            local ok, env = pcall(getsenv, s)
+            if ok and env and env._G and env._G.SendHitsToServer then
+                return env._G.SendHitsToServer
+            end
+        end
+    end
+    return nil
+end
+local function FastAttack_EnsureSendHits()
+    if getsenv and FastAttack_sendHits == nil then
+        FastAttack_sendHits = FastAttack_GetSendHits()
+    end
+end
+function FastAttack:SuperFastAttack()
+    local char = plr.Character
+    if not char then return end
+    local hum = char:FindFirstChild("Humanoid")
+    if not hum or hum.Health <= 0 then return end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    local tool
+    for _, c in ipairs(char:GetChildren()) do
+        if c:IsA("Tool") then
+            tool = c
+            break
+        end
+    end
+    if not tool then return end
+    local hitData = {}
+    local primaryPart
+    for _, list in ipairs({ FastAttack_enemies, FastAttack_characters }) do
+        if list then
+            for _, e in list:GetChildren() do
+                if e ~= char and not e:GetAttribute("IsBoat") then
+                    local ehum = e:FindFirstChild("Humanoid")
+                    local ebody = e:FindFirstChild("Head") or e.PrimaryPart
+                    if ehum and ehum.Health > 0 and ebody and (ebody.Position - root.Position).Magnitude <= 80 then
+                        local part = e:FindFirstChild(FastAttack_arms[math.random(#FastAttack_arms)]) or e.PrimaryPart
+                        if part then
+                            table.insert(hitData, { e, part })
+                            primaryPart = part
+                        end
+                    end
+                end
+            end
+        end
+    end
+    if #hitData == 0 or not primaryPart then return end
+    local lcr = tool:FindFirstChild("LeftClickRemote")
+    if lcr then
+        pcall(function()
+            lcr:FireServer((primaryPart.Position - root.Position).Unit, 1)
+        end)
+    end
+    Register_Attack:FireServer(0)
+    if FastAttack_combatThread then
+        FastAttack_EnsureSendHits()
+        if FastAttack_sendHits then
+            FastAttack_sendHits(primaryPart, hitData)
+        else
+            Register_Hit:FireServer(primaryPart, hitData)
+        end
+    else
+        Register_Hit:FireServer(primaryPart, hitData)
+    end
+end
+Hub = {}
+Hub.Title = "navizin Hub" .. (getgenv().Premium and " [Premium]" or getgenv().Developer and " [Developer]" or " [Beta]")
+Hub.Game = "BloxFruits"
+
+local Fluent = loadstring(game:HttpGet("https://raw.githubusercontent.com/huyyeuemhihi/Fluent/refs/heads/main/Fluentvip.lua"))()
+
+local Window = Fluent:CreateWindow({
+    Title = Hub.Title,
+    SubTitle = "by @it_kuridev and @dzvaiooo",
+    TabWidth = 160,
+    Size = UDim2.fromOffset(580, 460),
+    Acrylic = false,
+    Theme = "Dark",
+    MinimizeKey = Enum.KeyCode.LeftControl
+})
+
+local Options = Fluent.Options
+
+Notify = function(title, content, duration)
+    Fluent:Notify({
+        Title = title or "navizin Hub",
+        Content = content or "...",
+        Duration = duration or 5
+    })
+end
+
+if CurrnetExecutor == "Wave" or CurrnetExecutor == "AWP" or CurrnetExecutor == "Posstasium" then
+    Notify("navizin Hub","Your currnently executor support all function, some function will work good", 3)
+else
+    Notify("navizin Hub","Your currnently executor not support all function, some function will not work", 3)
+end
+
+plr.Idled:Connect(function()
+    game:GetService("VirtualUser"):Button1Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+    task.wait(1)
+    game:GetService("VirtualUser"):Button1Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+end)
+
+local RandomText = {
+    [1] = "Welcome to my script",
+    [2] = "Your Dad Fat",
+    [3] = "Your Mom Fat",
+    [4] = "?",
+    [5] = "Oh hi fat men",
+    [6] = "You're Banned",
+    [7] = "your fat"
+}
+
+local module,Settings = {}, {
+    ["Fast Attack"] = true,
+    ["Bring Distance"] = 350,
+    ["Tween Speed"] = 300,
+    ["Auto Buso"] = true,
+}
+
+module.Mobs = {
+    CakeMobs = {
+        "Cookie Crafter",
+        "Cake Guard",
+        "Baking Staff",
+        "Head Baker"
+    },
+    BoneMobs = {
+        "Reborn Skeleton",
+        "Living Zombie",
+        "Demonic Soul",
+        "Posessed Mummy"
+    },
+    EliteMobs = {
+        "Urban",
+        "Deandre",
+        "Diablo"
+    },
+    TikiMobs = {
+        "Island Boy",
+        "Isle Outlaw",
+        "Isle Champion",
+        "Serpent Hunter",
+        "Skull Slayer",
+        "Sun-kissed Warrior"
+    },
+    RengokuMobs = {
+        "Arctic Warrior",
+        "Snow Lurker"
+    },
+    ripindra = {
+        "rip_indra",
+        "rip_indra True Form"
+    },
+    CocoaMobs = {
+        "Cocoa Warrior",
+        "Chocolate Bar Battler",
+        "Candy Rebel",
+        "Sweet Thief",
+    },
+    SeaMobs = {
+        "Shark",
+        "Fish Crew Member",
+        "Piranha",
+        "Terrorshark"
+    }
+}
+
+module.Berries = {
+    "Blue Icicle Berry",
+    "Green Toad Berry",
+    "Orange Berry",
+    "Pink Pig Berry"
+}
+
+module.Bosses = {
+    ["Saber Expert"] = {
+        NoQuest = true,
+        Position = CFrame.new(-1461, 30, -51)
+    },
+    ["The Saw"] = {
+        RaidBoss = true,
+        Position = CFrame.new(-690, 15, 1583)
+    },
+    ["Greybeard"] = {
+        RaidBoss = true,
+        Position = CFrame.new(-5043, 25, 4262)
+    },
+    ["The Gorilla King"] = {
+        IsBoss = true,
+        Level = 20,
+        Position = CFrame.new(-1128, 6, -451),
+        Quest = {"JungleQuest", CFrame.new(-1598, 37, 153)}
+    },
+    ["Chef"] = {
+        IsBoss = true,
+        Level = 55,
+        Position = CFrame.new(-1131, 14, 4080),
+        Quest = {"BuggyQuest1", CFrame.new(-1140, 4, 3829)}
+    },
+    ["Yeti"] = {
+        IsBoss = true,
+        Level = 105,
+        Position = CFrame.new(1185, 106, -1518),
+        Quest = {"SnowQuest", CFrame.new(1385, 87, -1298)}
+    },
+    ["Vice Admiral"] = {
+        IsBoss = true,
+        Level = 130,
+        Position = CFrame.new(-4807, 21, 4360),
+        Quest = {"MarineQuest2", CFrame.new(-5035, 29, 4326), 2}
+    },
+    ["Swan"] = {
+        IsBoss = true,
+        Level = 240,
+        Position = CFrame.new(5230, 4, 749),
+        Quest = {"ImpelQuest", CFrame.new(5191, 4, 692)}
+    },
+    ["Chief Warden"] = {
+        IsBoss = true,
+        Level = 230,
+        Position = CFrame.new(5230, 4, 749),
+        Quest = {"ImpelQuest", CFrame.new(5191, 4, 692), 2}
+    },
+    ["Warden"] = {
+        IsBoss = true,
+        Level = 220,
+        Position = CFrame.new(5230, 4, 749),
+        Quest = {"ImpelQuest", CFrame.new(5191, 4, 692), 1}
+    },
+    ["Magma Admiral"] = {
+        IsBoss = true,
+        Level = 350,
+        Position = CFrame.new(-5694, 18, 8735),
+        Quest = {"MagmaQuest", CFrame.new(-5319, 12, 8515)}
+    },
+    ["Fishman Lord"] = {
+        IsBoss = true,
+        Level = 425,
+        Position = CFrame.new(61350, 31, 1095),
+        Quest = {"FishmanQuest", CFrame.new(61122, 18, 1567)}
+    },
+    ["Wysper"] = {
+        IsBoss = true,
+        Level = 500,
+        Position = CFrame.new(-7927, 5551, -637),
+        Quest = {"SkyExp1Quest", CFrame.new(-7861, 5545, -381)}
+    },
+    ["Thunder God"] = {
+        IsBoss = true,
+        Level = 575,
+        Position = CFrame.new(-7751, 5607, -2315),
+        Quest = {"SkyExp2Quest", CFrame.new(-7903, 5636, -1412)}
+    },
+    ["Cyborg"] = {
+        IsBoss = true,
+        Level = 675,
+        Position = CFrame.new(6138, 10, 3939),
+        Quest = {"FountainQuest", CFrame.new(5258, 39, 4052)}
+    },
+    ["Don Swan"] = {
+        RaidBoss = true,
+        Position = CFrame.new(2289, 15, 808)
+    },
+    ["Cursed Captain"] = {
+        RaidBoss = true,
+        Position = CFrame.new(912, 186, 33591)
+    },
+    ["Darkbeard"] = {
+        RaidBoss = true,
+        Position = CFrame.new(3695, 13, -3599)
+    },
+    ["Diamond"] = {
+        IsBoss = true,
+        Level = 750,
+        Position = CFrame.new(-1569, 199, -31),
+        Quest = {"Area1Quest", CFrame.new(-427, 73, 1835)}
+    },
+    ["Jeremy"] = {
+        IsBoss = true,
+        Level = 850,
+        Position = CFrame.new(2316, 449, 787),
+        Quest = {"Area2Quest", CFrame.new(635, 73, 919)}
+    },
+    ["Orbitus"] = {
+        IsBoss = true,
+        Level = 925,
+        Position = CFrame.new(-2086, 73, -4208),
+        Quest = {"MarineQuest3", CFrame.new(-2441, 73, -3219)}
+    },
+    ["Smoke Admiral"] = {
+        IsBoss = true,
+        Level = 1150,
+        Position = CFrame.new(-5078, 24, -5352),
+        Quest = {"IceSideQuest", CFrame.new(-6061, 16, -4904)}
+    },
+    ["Awakened Ice Admiral"] = {
+        IsBoss = true,
+        Level = 1400,
+        Position = CFrame.new(6473, 297, -6944),
+        Quest = {"FrostQuest", CFrame.new(5668, 28, -6484)}
+    },
+    ["Tide Keeper"] = {
+        IsBoss = true,
+        Level = 1475,
+        Position = CFrame.new(-3711, 77, -11469),
+        Quest = {"ForgottenQuest", CFrame.new(-3056, 240, -10145)}
+    },
+    ["Tyrant of the Skies"] = {
+        RaidBoss = true,
+        Position = CFrame.new(-16252, 153, 1394)
+    },
+    ["Cake Prince"] = {
+        RaidBoss = true,
+        Position = CFrame.new(-2103, 70, -12165)
+    },
+    ["Dough King"] = {
+        RaidBoss = true,
+        Position = CFrame.new(-2103, 70, -12165)
+    },
+    ["rip_indra True Form"] = {
+        RaidBoss = true,
+        Position = CFrame.new(-5333, 424, -2673)
+    },
+    ["Stone"] = {
+        IsBoss = true,
+        Level = 1550,
+        Position = CFrame.new(-1049, 40, 6791),
+        Quest = {"PiratePortQuest", CFrame.new(-449, 109, 5950)}
+    },
+    ["Hydra Leader"] = {
+        IsBoss = true,
+        Level = 1675,
+        Position = CFrame.new(5836, 1019, -83),
+        Quest = {"VenomCrewQuest", CFrame.new(5214, 1004, 761)}
+    },
+    ["Kilo Admiral"] = {
+        IsBoss = true,
+        Level = 1750,
+        Position = CFrame.new(2904, 509, -7349),
+        Quest = {"MarineTreeIsland", CFrame.new(2485, 74, -6788)}
+    },
+    ["Captain Elephant"] = {
+        IsBoss = true,
+        Level = 1875,
+        Position = CFrame.new(-13393, 319, -8423),
+        Quest = {"DeepForestIsland", CFrame.new(-13233, 332, -7626)}
+    },
+    ["Beautiful Pirate"] = {
+        IsBoss = true,
+        Level = 1950,
+        Position = CFrame.new(5370, 22, -89),
+        Quest = {"DeepForestIsland2", CFrame.new(-12682, 391, -9901)}
+    },
+    ["Cake Queen"] = {
+        IsBoss = true,
+        Level = 2175,
+        Position = CFrame.new(-710, 382, -11150),
+        Quest = {"IceCreamIslandQuest", CFrame.new(-818, 66, -10964)}
+    },
+    ["Longma"] = {
+        NoQuest = true,
+        Position = CFrame.new(-10218, 333, -9444)
+    }
+}
+
+module.Getboss = function(Boss)
+    for r,v in next, module.Bosses do
+        if r == Boss and v.IsBoss then
+            return r,v
+        end
+    end
+end
+
+NPCs = {}
+for _,v in next, ReplicatedStorage.NPCs:GetChildren() do
+    table.insert(NPCs, v)
+end
+for _,v in next, WS.NPCs:GetChildren() do
+    table.insert(NPCs, v)
+end
+
+print(RandomText[math.random(1, #RandomText)])
+
+module.new = function(name, config)
+    local gaya = Instance.new(name)
+    for index, value in next, config do
+        gaya[index] = value
+    end
+    return gaya
+end
+
+module.Save = function()
+    if not isfolder("navizin Hub") then
+        makefolder("navizin Hub")
+    end
+    if not isfolder("navizin Hub/Settings") then
+        makefolder("navizin Hub/Settings")
+    end
+    writefile("navizin Hub/Settings/" .. Hub.Game .. "-" .. plr.Name .. ".json", HttpService:JSONEncode(Settings))
+end
+
+module.Read = function()
+    p1, p2 = pcall(function()
+        if not isfolder("navizin Hub") then
+            module.Save()
+        end
+        return HttpService:JSONDecode(readfile("navizin Hub/Settings/" .. Hub.Game .. "-" .. plr.Name .. ".json"))
+    end)
+    if p1 then
+        return p2
+    else
+        module.Save()
+        return module.Read()
+    end
+end
+
+Settings = module.Read()
+
+local ShopTab = Window:AddTab({ Title = "Shop Tab", Icon = "rbxassetid://134556077676632" })
+ShopTab:AddSection("Items Rolling")
+ShopTab:AddButton({
+    Title = "Redeem All Codes",
+    Callback = function()
+        local Codes = {
+            "BANEXPLOIT", "NOMOREHACK", "WildDares", "BossBuild", "GetPranked",
+            "EARN_FRUITS", "SUB2GAMERROBOT_RESET1", "KITT_RESET", "Bignews", "CHANDLER",
+            "Fudd10", "fudd10_v2", "Sub2UncleKizaru", "FIGHT4FRUIT", "kittgaming",
+            "TRIPLEABUSE", "Sub2CaptainMaui", "Sub2Fer999", "Enyu_is_Pro", "Magicbus",
+            "JCWK", "Starcodeheo", "Bluxxy", "SUB2GAMERROBOT_EXP1", "Sub2NoobMaster123",
+            "Sub2Daigrock", "Axiore", "TantaiGaming", "StrawHatMaine", "Sub2OfficialNoobie",
+            "TheGreatAce", "JULYUPDATE_RESET", "ADMINHACKED", "SEATROLLING", "24NOADMIN",
+            "ADMIN_TROLL", "NEWTROLL", "SECRET_ADMIN", "staffbattle", "NOEXPLOIT",
+            "NOOB2ADMIN", "CODESLIDE", "fruitconcepts", "krazydares"
+        }
+        for _, v in next, Codes do
+            ReplicatedStorage.Remotes.Redeem:InvokeServer(v)
+        end
+    end
+})
+local RandomSuprises = ShopTab:AddToggle("Random Suprises", {
+    Title = "Random Suprises",
+    Description = "Auto roll bones",
+    Default = Settings["Random Suprises"] or false,
+    Callback = function(v)
+        Settings["Random Suprises"] = v
+        module.Save()
+    end
+})
+
+ShopTab:AddSection("Fighting Style")
+local SelectMelee = ShopTab:AddDropdown("Select Melee", {
+    Title = "Select Melee",
+    Description = "Select any melee your want to buy",
+    Values = {"Black Legs", "Electro", "Fishman Karate", "Dragon Claw", "Superhuman", "Death Step", "Electric Claw", "Sharkman Karate", "Dragon Talon", "Godhuman", "Sanguine Art"},
+    Default = "",
+    Callback = function(v)
+        if v == "Black Legs" then
+            module.FireRemotes("BuyBlackLeg")
+        elseif v == "Electro" then
+            module.FireRemotes("BuyElectro")
+        elseif v == "Fishman Karate" then
+            module.FireRemotes("BuyFishmanKarate")
+        elseif v == "Dragon Claw" then
+            module.FireRemotes("BlackbeardReward", "DragonClaw", "1")
+            module.FireRemotes("BlackbeardReward", "DragonClaw", "2")
+        elseif v == "Superhuman" then
+            module.FireRemotes("BuySuperhuman")
+        elseif v == "Death Step" then
+            module.FireRemotes("BuyDeathStep")
+        elseif v == "Electric Claw" then
+            module.FireRemotes("BuyElectricClaw")
+        elseif v == "Sharkman Karate" then
+            module.FireRemotes("BuySharkmanKarate")
+        elseif v == "Dragon Talon" then
+            module.FireRemotes("BuyDragonTalon")
+        elseif v == "Godhuman" then
+            module.FireRemotes("BuyGodhuman")
+        elseif v == "Sanguine Art" then
+            module.FireRemotes("BuySanguineArt",true)
+            module.FireRemotes("BuySanguineArt")
+        end
+    end
+})
+local AutoBuyHaki = ShopTab:AddToggle("Auto Buy Haki Spawn", {
+    Title = "Auto Buy Haki Spawn",
+    Default = Settings["Auto Buy Haki Spawn"] or false,
+    Callback = function(v)
+        Settings["Auto Buy Haki Spawn"] = v
+        module.Save()
+    end
+})
+local AutoBuyLegendary = ShopTab:AddToggle("Auto Buy Legendary Sword", {
+    Title = "Auto Buy Legendary Sword",
+    Default = Settings["Auto Buy Legendary Sword"] or false,
+    Callback = function(v)
+        Settings["Auto Buy Legendary Sword"] = v
+        module.Save()
+    end
+})
+ShopTab:AddButton({
+    Title = "Refund Stats",
+    Callback = function()
+        CommF_:InvokeServer("BlackbeardReward","Refund","1")
+        CommF_:InvokeServer("BlackbeardReward","Refund","2")
+    end
+})
+
+local StatusTab = Window:AddTab({ Title = "Status Servers", Icon = "rbxassetid://122223674767625" })
+StatusTab:AddSection("Status")
+local CakePrinceStatus = StatusTab:AddParagraph({ Title = "Cake Prince Status", Content = "Only Sea 3" })
+local EliteStatus = StatusTab:AddParagraph({ Title = "Elite Status", Content = "Only Sea 3" })
+local LeviathanStatus = StatusTab:AddParagraph({ Title = "Leviathan Status", Content = "Only Sea 3" })
+local MirageStatus = StatusTab:AddParagraph({ Title = "Mirage Status", Content = "Only Sea 3" })
+local BerriesCheck = StatusTab:AddParagraph({ Title = "Berries Check", Content = "Only Sea 3" })
+
+StatusTab:AddSection("Server")
+local JobIdInput = StatusTab:AddInput("Job Id", {
+    Title = "Job Id",
+    Placeholder = "Input job id here...",
+    Callback = function(v)
+        getgenv().JobId = v
+    end
+})
+StatusTab:AddButton({
+    Title = "Join Job Id",
+    Callback = function()
+        game.ReplicatedStorage.__ServerBrowser:InvokeServer("teleport", getgenv().JobId)
+    end
+})
+StatusTab:AddButton({
+    Title = "Copy Job Id",
+    Callback = function()
+        setclipboard(game.JobId)
+        Fluent:Notify({ Title = "Servers Status", Content = "Copy Success!", Duration = 4 })
+    end
+})
+StatusTab:AddButton({
+    Title = "Rejoin Server",
+    Callback = function()
+        game.ReplicatedStorage.__ServerBrowser:InvokeServer("teleport", game.JobId)
+    end
+})
+StatusTab:AddButton({
+    Title = "Hop Server",
+    Callback = function()
+        module.HopServers(10)
+    end
+})
+StatusTab:AddButton({
+    Title = "Hop Server Low Players",
+    Callback = function()
+        module.HopLow()
+    end
+})
+
+local ConfigTab = Window:AddTab({ Title = "Config Farm", Icon = "rbxassetid://127147149367603" })
+local HopOptions = ConfigTab:AddToggle("Hop Options", {
+    Title = "Hop Options",
+    Description = "Auto hop server if not have enemies or a items by a function check",
+    Default = Settings["Hop Options"] or false,
+    Ca
